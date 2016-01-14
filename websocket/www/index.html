@@ -1,13 +1,19 @@
 <!DOCTYPE html>
 <html>
 <head>                                        <!-- Please copy the following files into here: -->
-<script src="./Long.min.js"></script>         <!-- https://raw.github.com/dcodeIO/Long.js/master/dist/Long.min.js -->
-<script src="./ByteBufferAB.min.js"></script> <!-- https://raw.github.com/dcodeIO/ByteBuffer.js/master/dist/ByteBufferAB.min.js -->
-<script src="./ProtoBuf.js"></script>     <!-- https://raw.github.com/dcodeIO/ProtoBuf.js/master/dist/ProtoBuf.min.js -->
-<script src="./jquery-1.12.0.min.js"></script>
+<script src="./Long.min.js">
+</script>         <!-- https://raw.github.com/dcodeIO/Long.js/master/dist/Long.min.js -->
+<script src="./ByteBufferAB.min.js">
+</script> <!-- https://raw.github.com/dcodeIO/ByteBuffer.js/master/dist/ByteBufferAB.min.js -->
+<script src="./ProtoBuf.js">
+</script>     <!-- https://raw.github.com/dcodeIO/ProtoBuf.js/master/dist/ProtoBuf.min.js -->
+<script src="./jquery-1.12.0.min.js">
+</script>
 <script>
+
+
 if (typeof dcodeIO === 'undefined' || !dcodeIO.ProtoBuf) {
-    throw(new Error("ProtoBuf.js is not present. Please see www/index.html for manual setup instructions."));
+    throw (new Error("ProtoBuf.js is not present. Please see www/index.html for manual setup instructions."));
 }
 // Initialize ProtoBuf.js
 var ProtoBuf = dcodeIO.ProtoBuf;
@@ -16,10 +22,13 @@ var ProtoBuf = dcodeIO.ProtoBuf;
 <body>
 <select id="pb-sel">
 </select><button id="pb-create">创建</button>
-
-    
+<br>
+<textarea id="log" style="width: 250px; height: 200px">
+</textarea>
 
 <script>
+
+
 
 var builder = ProtoBuf.loadProtoFile("./HomePageMessage.proto");
 var pbSel = $("#pb-sel");
@@ -33,7 +42,53 @@ $(builder.ns.children).each(function(k, v) {
 
 $("#pb-create").click(function() {
     var pbIndex = pbSel.val();
-    builder.ns.children[pbIndex];
+    var Message = builder.ns.children[pbIndex];
+    
+    function convertField(field) {
+        var mappings = {
+            'message': 'object',
+            'int32': 'integer',
+            'double': 'number',
+            'string': 'string',
+            'bool': 'boolean'
+        };
+        var type = mappings[field.type.name] || field.type.name;
+        var schema
+        if (type === "object") {
+            schema = convertMessage(field.resolvedType);
+        } else {
+            schema = {
+                type: type,
+                id: field.id
+            };
+        }
+        if (field.repeated) {
+            return {
+                type: "array",
+                items: schema
+            }
+        } else {
+            return schema;
+        }
+    }
+    
+    function convertMessage(message) {
+        var schema = {};
+        schema.id = message.name;
+        schema.type = "object";
+        schema.properties = {};
+        $(message.children).each(function(k, v) {
+            schema.properties[v.name] = convertField(v);
+        });
+        return schema;
+    }
+    var schema = convertMessage(Message);
+    var output = JSON.stringify(schema, null , 4);
+    console.dir(schema);
+    console.log(output);
+    var log = $("#log");
+    log.text(output);
+
 });
 </script>
 <!--
