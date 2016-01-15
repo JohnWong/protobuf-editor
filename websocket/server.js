@@ -34,15 +34,18 @@ var builder = ProtoBuf.loadProtoFile(path.join(__dirname, "www", "HomePageMessag
 var server = http.createServer(function(req, res) {
         var file = null,
             type = "text/html";
-        if (req.url == "/") {
+        var url = req.url.split("?")[0];
+        if (url == "/") {
             file = "index.html";
-        } else if (/^\/([\w.-]+(?:\.min)?\.(?:js|html|proto))$/.test(req.url)) {
-            file = req.url.substring(1);
+        } else if (/\/([\w.-]+(?:\.min)?\.(?:js|css|html|proto|woff|woff2|ttf))$/.test(url)) {
+            file = url.substring(1);
             if (/\.js$/.test(file)) {
                 type = "text/javascript";
-            }
+            } else if (/\.css$/.test(file)) {
+                type = "text/css";
+            } 
         }
-        console.log(req.url);
+        console.log(url);
         if (file) {
             fs.readFile(path.join(__dirname, "www", file), function(err, data) {
                 if (err) {

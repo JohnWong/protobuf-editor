@@ -110,43 +110,6 @@
                 <textarea id='schema' style='width: 100%; height: 450px; font-family: monospace;' class='form-control'></textarea>
             </div>
         </div>
-        <div class='row'>
-            <div class='span12 col-md-12 columns twelve large-12'>
-                <h2>Code</h2>
-      <pre><code>// Set default options
-JSONEditor.defaults.options.theme = 'bootstrap2';
-
-// Initialize the editor
-var editor = new JSONEditor(document.getElementById("editor_holder"),{
-  schema: {
-      type: "object",
-      properties: {
-          name: { "type": "string" }
-      }
-  }
-});
-
-// Set the value
-editor.setValue({
-    name: "John Smith"
-});
-
-// Get the value
-var data = editor.getValue();
-console.log(data.name); // "John Smith"
-
-// Validate
-var errors = editor.validate();
-if(errors.length) {
-  // Not valid
-}
-
-// Listen for changes
-editor.on("change",  function() {
-  // Do something...
-});</code></pre>
-            </div>
-        </div>
     </div>
 </div>
 <script>

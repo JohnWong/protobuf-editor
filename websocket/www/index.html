@@ -1,97 +1,158 @@
 <!DOCTYPE html>
 <html>
-<head>                                        <!-- Please copy the following files into here: -->
-<script src="./Long.min.js">
-</script>         <!-- https://raw.github.com/dcodeIO/Long.js/master/dist/Long.min.js -->
-<script src="./ByteBufferAB.min.js">
-</script> <!-- https://raw.github.com/dcodeIO/ByteBuffer.js/master/dist/ByteBufferAB.min.js -->
-<script src="./ProtoBuf.js">
-</script>     <!-- https://raw.github.com/dcodeIO/ProtoBuf.js/master/dist/ProtoBuf.min.js -->
-<script src="./jquery-1.12.0.min.js">
-</script>
-<script>
 
-
-if (typeof dcodeIO === 'undefined' || !dcodeIO.ProtoBuf) {
-    throw (new Error("ProtoBuf.js is not present. Please see www/index.html for manual setup instructions."));
-}
-// Initialize ProtoBuf.js
-var ProtoBuf = dcodeIO.ProtoBuf;
-</script>
+<head>
+    <!-- Foundation CSS framework (Bootstrap and jQueryUI also supported) -->
+    <link rel='stylesheet' href='css/foundation.min.css'>
+    <!-- Font Awesome icons (Bootstrap, Foundation, and jQueryUI also supported) -->
+    <link rel='stylesheet' href='css/font-awesome.min.css'>
+    <style>[class*="foundicon-"] {font-family: GeneralFoundicons;font-style: normal;}</style>
+    <script src="jsoneditor.js"></script>
+    <!-- Please copy the following files into here: -->
+    <script src="./Long.min.js"></script>
+    <!-- https://raw.github.com/dcodeIO/Long.js/master/dist/Long.min.js -->
+    <script src="./ByteBufferAB.min.js"></script>
+    <!-- https://raw.github.com/dcodeIO/ByteBuffer.js/master/dist/ByteBufferAB.min.js -->
+    <script src="./ProtoBuf.js"></script>
+    <!-- https://raw.github.com/dcodeIO/ProtoBuf.js/master/dist/ProtoBuf.min.js -->
+    <script src="./jquery-1.12.0.min.js"></script>
 </head>
+
 <body>
-<select id="pb-sel">
-</select><button id="pb-create">创建</button>
-<br>
-<textarea id="log" style="width: 250px; height: 200px">
-</textarea>
-
-<script>
-
-
-
-var builder = ProtoBuf.loadProtoFile("./HomePageMessage.proto");
-var pbSel = $("#pb-sel");
-pbSel.empty();
-$(builder.ns.children).each(function(k, v) {
-    var option = $("<option>");
-    option.attr("value", k);
-    option.html(v.name);
-    pbSel.append(option);
-});
-
-$("#pb-create").click(function() {
-    var pbIndex = pbSel.val();
-    var Message = builder.ns.children[pbIndex];
+    <div class='container'>
+        <div class='row'>
+            <div class='span8 col-md-8 columns eight large-8'>
+                <h2>Editor</h2>
+                <p>Below is the editor generated from the JSON Schema.</p>
+                <div class="row-fluid">
+                    <input id="read" type="file" />
+                    <select id="pb-sel" style="width: auto">
+                    </select>
+                    <button id="pb-create" class="tiny">创建</button>
+                </div>
+                <div id='editor'></div>
+            </div>
+            <div class='span4 col-md-4 columns four large-4'>
+                <h2>JSON Output</h2>
+                <p>You can also make changes to the JSON here and set the value in the editor by clicking
+                    <button class='btn btn-primary' id='setvalue'>Update Form</button>
+                </p>
+                <textarea id='output' style='width: 100%; height: 300px; font-family: monospace;' class='form-control'></textarea>
+                <h2>Validation</h2>
+                <p>This will update whenever the form changes to show validation errors if there are any.</p>
+                <textarea id='validate' style='width: 100%; height: 100px; font-family: monospace;' readonly disabled class='form-control'></textarea>
+            </div>
+        </div>
+    </div>
+    <script>
+    if (typeof dcodeIO === 'undefined' || !dcodeIO.ProtoBuf) {
+        throw (new Error("ProtoBuf.js is not present. Please see www/index.html for manual setup instructions."));
+    }
+    // Initialize ProtoBuf.js
+    var ProtoBuf = dcodeIO.ProtoBuf;
     
-    function convertField(field) {
-        var mappings = {
-            'message': 'object',
-            'int32': 'integer',
-            'double': 'number',
-            'string': 'string',
-            'bool': 'boolean'
-        };
-        var type = mappings[field.type.name] || field.type.name;
-        var schema
-        if (type === "object") {
-            schema = convertMessage(field.resolvedType);
-        } else {
-            schema = {
-                type: type,
-                id: field.id
+    var builder = ProtoBuf.loadProtoFile("./HomePageMessage.proto");
+    var pbSel = $("#pb-sel");
+    pbSel.empty();
+    $(builder.ns.children).each(function(k, v) {
+        var option = $("<option>");
+        option.attr("value", k);
+        option.html(v.name);
+        pbSel.append(option);
+    });
+
+    $("#pb-create").click(function() {
+        var pbIndex = pbSel.val();
+        var Message = builder.ns.children[pbIndex];
+
+        function convertField(field) {
+            var mappings = {
+                'message': 'object',
+                'int32': 'integer',
+                'double': 'number',
+                'string': 'string',
+                'bool': 'boolean'
             };
-        }
-        if (field.repeated) {
-            return {
-                type: "array",
-                items: schema
+            var type = mappings[field.type.name] || field.type.name;
+            var schema
+            if (type === "object") {
+                schema = convertMessage(field.resolvedType);
+            } else {
+                schema = {};
+                schema.type = type;
+                schema.id = field.id;
+                if (field.defaultValue) {
+                    schema.defaultValue = field.defaultValue;
+                }
             }
-        } else {
-            return schema;
+            if (field.repeated) {
+                return {
+                    type: "array",
+                    items: schema
+                }
+            } else {
+                return schema;
+            }
         }
-    }
-    
-    function convertMessage(message) {
-        var schema = {};
-        schema.id = message.name;
-        schema.type = "object";
-        schema.properties = {};
-        $(message.children).each(function(k, v) {
-            schema.properties[v.name] = convertField(v);
-        });
-        return schema;
-    }
-    var schema = convertMessage(Message);
-    var output = JSON.stringify(schema, null , 4);
-    console.dir(schema);
-    console.log(output);
-    var log = $("#log");
-    log.text(output);
 
-});
-</script>
-<!--
+        function convertMessage(message) {
+            var obj = {};
+            obj.title = message.name;
+            obj.type = "object";
+            obj.properties = {};
+            $(message.children).each(function(k, v) {
+                obj.properties[v.name] = convertField(v);
+            });
+            return obj;
+        }
+        schema = convertMessage(Message);
+        var output = JSON.stringify(schema, null, 4);
+        console.dir(schema);
+        console.log(output);
+        reload();
+    });
+    
+    var schema;
+    var jsoneditor;
+    var editor = $("#editor")[0];
+    var output = $("#output");
+    var validate = $("#validate");
+    var reload = function(keep_value) {
+        var startval = (jsoneditor && keep_value)? jsoneditor.getValue() : window.startval;
+        window.startval = undefined;
+
+        if(jsoneditor) jsoneditor.destroy();
+        jsoneditor = new JSONEditor(editor,{
+            schema: schema || {},
+            startval: startval
+        });
+        window.jsoneditor = jsoneditor;
+
+        // When the value of the editor changes, update the JSON output and validation message
+        jsoneditor.on('change',function() {
+            var json = jsoneditor.getValue();
+
+            output.text(JSON.stringify(json,null,2));
+
+            var validation_errors = jsoneditor.validate();
+            // Show validation errors if there are any
+            if(validation_errors.length) {
+                validate.text(JSON.stringify(validation_errors,null,2));
+            }
+            else {
+                validate.text('valid');
+            }
+        });
+    };
+    $("#setvalue").on('click',function() {
+        jsoneditor.setValue(JSON.parse(output.val()));
+    });
+    JSONEditor.defaults.options.object_layout = 'normal';
+    JSONEditor.defaults.options.show_errors = 'interaction';
+    JSONEditor.defaults.options.theme = 'foundation5';
+    JSONEditor.defaults.options.iconlib = 'fontawesome4';
+    </script>
+    <!--
 <textarea id="log" style="width: 100%; height: 200px"></textarea><br />
 <input type="text" id="text" value="hello world!" /> <button onclick="send()">Send</button>
 
@@ -137,4 +198,5 @@ log.value = ""; // Clear log on reload
 </script>
 -->
 </body>
+
 </html>
