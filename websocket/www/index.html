@@ -11,12 +11,13 @@
         font-family: GeneralFoundicons;
         font-style: normal;
     }
-    .drop-area {
-        border: 3px dashed transparent;
+    .drop-define {
+        border: 5px dashed transparent;
     }
     .active {
-        background-color: #effdee;
-        border: 3px dashed silver;
+        opacity: 0.8;
+        background-color: #cbe9ef;
+        border: 5px dashed #9c9c9c;
     }
     </style>
     <script src="jsoneditor.js"></script>
@@ -33,22 +34,24 @@
 <body>
     <div class='container'>
         <div class='row'>
-            <div id="dropdef" class='span8 col-md-8 columns eight large-8 drop-area'>
-                <h2>Editor</h2>
-                <p>选择PB定义文件或者拖放文件到编辑器</p>
+            <div id="dropdef" class='span8 col-md-8 columns eight large-8 drop-define'>
+                <h2>编辑器</h2>
+                <p>选择PB定义文件或者直接拖放到这里</p>
                 <div class="row-fluid">
-                    <input id="read" type="file" class="button"/>
+                    <input id="readdef" type="file" class="button tiny" style="width: auto;"/>
                     <select id="pb-sel" style="width: auto; display: none;">
                     </select>
                     <!-- <button id="pb-create" class="tiny">创建</button> -->
                 </div>
                 <div id='editor'></div>
             </div>
-            <div class='span4 col-md-4 columns four large-4'>
-                <h2>JSON Output</h2>
-                <p>You can also make changes to the JSON here and set the value in the editor by clicking
-                    <button class='btn btn-primary' id='setvalue'>Update Form</button>
+            <div id="dropdata" class='span4 col-md-4 columns four large-4 drop-define'>
+                <h2>JSON输出</h2>
+                <p>选择PB数据文件或者直接拖放到这里
+                    
                 </p>
+                <input id="readdata" type="file" class="button tiny"  style="width: auto;"/>
+                <button class='btn btn-primary tiny' id='setvalue'>更新到编辑器</button>
                 <textarea id='output' style='width: 100%; height: 300px; font-family: monospace;' class='form-control'></textarea>
                 <h2>Validation</h2>
                 <p>This will update whenever the form changes to show validation errors if there are any.</p>
@@ -63,14 +66,16 @@
     // Initialize ProtoBuf.js
     var ProtoBuf = dcodeIO.ProtoBuf;
     var builder;
+    var Message;
     
-    function readFile(file) {
+    function readDefineFile(file) {
         if (!(file instanceof File)) {
             return
         }
         var reader = new FileReader();
         reader.onload = function(e) {
-            builder = ProtoBuf.loadProto(e.target.result);
+            var result = e.target.result;
+            builder = ProtoBuf.loadProto(result);
             var pbSel = $("#pb-sel");
             pbSel.empty();
             $(builder.ns.children).each(function(k, v) {
@@ -88,40 +93,46 @@
         reader.readAsText(file);
     };
 
-    $("#read").on("change", function(evt) {
+    $("#readdef").on("change", function(evt) {
         var files = evt.target.files[0];
         if(files.length == 0){ 
             return false; 
         }
-        readFile(files[0]);        
+        readDefineFile(files[0]);        
     });
 
-    var dropdef = $("#dropdef").on({
-        dragleave:function(e){
-            e.preventDefault();
-            dropdef.removeClass("active");
-        }, 
-        drop:function(e){  //拖后放 
-            e.preventDefault(); 
-            var files = e.originalEvent.dataTransfer.files;
-            if(files.length == 0){ 
-                return false; 
+    function registerDropArea(ele, callback) {
+        ele.on({
+            dragleave:function(e){
+                e.preventDefault();
+                ele.removeClass("active");
+            }, 
+            drop:function(e){
+                e.preventDefault(); 
+                var files = e.originalEvent.dataTransfer.files;
+                if(files.length == 0){ 
+                    return false; 
+                }
+                callback(files[0]);
+                ele.removeClass("active");
+            },
+            dragenter:function(e){
+                e.preventDefault();
+            }, 
+            dragover:function(e){
+                e.preventDefault(); 
+                ele.addClass("active");
             }
-            readFile(files[0]);
-            dropdef.removeClass("active");
-        },
-        dragenter:function(e){    //拖进 
-            e.preventDefault();
-        }, 
-        dragover:function(e){    //拖来拖去 
-            e.preventDefault(); 
-            dropdef.addClass("active");
-        }
+        });
+    }
+
+    registerDropArea($("#dropdef"), function(result) {
+        readDefineFile(result); 
     });
 
     $("#pb-sel").on("change", function(evt) {
         var pbIndex = $("#pb-sel").val();
-        var Message = builder.ns.children[pbIndex];
+        Message = builder.ns.children[pbIndex];
 
         function convertField(field) {
             var mappings = {
@@ -187,18 +198,18 @@
         window.jsoneditor = jsoneditor;
 
         // When the value of the editor changes, update the JSON output and validation message
-        jsoneditor.on('change',function() {
+        jsoneditor.on("change",function() {
             var json = jsoneditor.getValue();
 
-            output.text(JSON.stringify(json,null,2));
+            output.val(JSON.stringify(json,null,2));
 
             var validation_errors = jsoneditor.validate();
             // Show validation errors if there are any
             if(validation_errors.length) {
-                validate.text(JSON.stringify(validation_errors,null,2));
+                validate.val(JSON.stringify(validation_errors,null,2));
             }
             else {
-                validate.text('valid');
+                validate.val('valid');
             }
         });
     };
@@ -209,6 +220,37 @@
     JSONEditor.defaults.options.show_errors = 'interaction';
     JSONEditor.defaults.options.theme = 'foundation5';
     JSONEditor.defaults.options.iconlib = 'fontawesome4';
+
+    function readDataFile(file) {
+        if (!(file instanceof File)) {
+            return
+        }
+        var reader = new FileReader();
+        reader.onload = function(e) {
+            var result = e.target.result;
+            var msg = builder.build(Message.name).decode(result);
+            var jsonString = JSON.stringify(msg, null, 4);
+            output.val(jsonString);
+            console.log(msg);
+        };
+        reader.onerror = function(e) {
+            console.log("err", e);
+        };
+        reader.readAsArrayBuffer(file);
+    };
+
+    registerDropArea($("#dropdata"), function(result) {
+        readDataFile(result); 
+    });
+
+    $("#readdata").on("change", function(evt) {
+        var files = evt.target.files[0];
+        if(files.length == 0){ 
+            return false; 
+        }
+        readDataFile(files[0]);        
+    });
+    
     </script>
     <!--
 <textarea id="log" style="width: 100%; height: 200px"></textarea><br />

@@ -10,10 +10,6 @@ message O2OBasePaginationRequest{
     optional double y = 3;
     /**最后的一个ID**/
     optional string  lastId=4;
-    /** 每页的大小 */
-    optional int32 pageSize=5;
-    /**第几页**/
-    optional int32 page=6;
 }
 /**
 *商家首页查询request
@@ -32,25 +28,19 @@ message O2OHomePageRequest{
 *商家首页标签店铺查询
 */
 message O2OHomeShopTabRequest{
-    /**最后的一个ID**/
-    optional string  lastId=1;
-    /** 每页的大小 */
-    optional int32 pageSize=2;
-    /**第几页**/
-    optional int32 page=3;
+    /**已经展示的数量**/
+    optional int32  hasShowNumber=1;
     /**城市id**/
-    optional string cityId = 4;
+    optional string cityId = 2;
     /**LBS里面的经度**/
-    optional double x = 5;
+    optional double x = 3;
     /**LBS里面的纬度*/
-    optional double y = 6;
-    /**推荐/搜索ID*/
-    optional string recommendId = 7;
+    optional double y =4;
     /**查询tabId*/
-    optional string tabId=8;
+    optional string tabId=6;
 }
 //推荐查询返回结果
-message O2OShopRecommendResonpse {
+message O2OShopRecommendResponse {
     /** 请求返回状态 */
     optional bool success = 1;
     optional O2OShopRecommend shopRecomend=2;
@@ -61,14 +51,16 @@ message O2OShopRecommendResonpse {
 }
 /**店铺推荐*/
 message O2OShopRecommend{
+    /** 是否做降级处理，mrp异常时为true */
+    optional bool  isDegrade= 1;
     /** 推荐栏标题 */
-    optional string title = 3;
-    /** 推荐信息RID */
-    optional string recommendId = 2;
+    optional string title = 2;
     /** 推荐信息列表 */
-    repeated O2OMrpShopDetail shopDetails = 4;
+    repeated O2OMrpShopDetail shopDetails = 3;
     /**是否有下一页*/
-    optional bool hasMore=5;
+    optional bool hasMore=4;
+    /**标签页labelid*/
+    optional string labelId=5;
 }
 /**
 *推荐店铺具体信息
@@ -102,6 +94,8 @@ message O2OMrpShopDetail{
     /**右上角角标*/
     optional string angleMark=14;
     repeated string icons=15;
+    /**外部日志监控数据*/
+    optional string dtLogmonitor = 16;
 }
 /**
 *店铺减，券等信息
@@ -132,32 +126,49 @@ message O2OHomePageResponse{
     repeated O2OMenu menus = 2;
     /**城市是否开放*/
     optional bool cityOpen = 3;
-    /**展现开关*/
-    optional bool showSwitch = 4;
     /**城市信息*/
-    optional O2OCityInfo cityInfo = 5;
+    optional O2OCityInfo cityInfo = 4;
     /**错误码*/
-    optional string resultCode = 6;
+    optional string resultCode = 5;
     /**描述*/
-    optional string desc = 7;
+    optional string desc = 6;
     /**类目md5值*/
-    optional string menuMd5=8;
+    optional string menuMd5=7;
     /**运营活动专题区域*/
-    repeated O2OTopicArea topics=9;
+    repeated O2OTopicArea topics=8;
     /**为你推荐*/
-    optional O2OShopRecommend yourRecommonds=10;
+    optional O2OShopRecommend yourRecommends=9;
     /**老的热门推荐*/
-    optional O2OShopRecommend hotRecommonds=11;
+    optional O2OShopRecommend hotRecommends=10;
     /**标签列表*/
-    repeated O2OStorelabel labels=12;
+    repeated O2OStoreLabel labels=11;
     /**标签对应店铺*/
-    optional O2OShopRecommend labelShops=13;
+    optional O2OShopRecommend labelShops=12;
     /**搜索框词*/
-    optional string searchText=14;
-    /**类目背景图*/
-    optional string menuBackgroundImage=15;
+    optional string searchText=13;
+    optional O2OMenuBackground menuBackground=14;
     /**展示样式标志*/
-    optional O2OShowType showType=16;
+    optional O2OShowType showType=15;
+
+}
+/**
+*类目背景
+*/
+message O2OMenuBackground{
+    /**类目背景图*/
+    optional string menuBackgroundImage=1;
+    /*类目背景图高*/
+    optional int32 menuBackgroundImageHeight=2;
+    /**类目背景图宽**/
+    optional int32 menuBackgroundImageWidth=3;
+    /**跳转url*/
+    optional string actionUrl=4;
+    /**类目名称字体颜色*/
+    optional string nameColor=5;
+    /**类目滑动区选中状态颜色*/
+    optional string indicatorSelectedColor =6;
+    /**类目滑动区未选中状态颜色*/
+    optional string indicatorColor =7;
 
 }
 /**
@@ -195,8 +206,9 @@ message O2OTopicArea{
 /**
 *店铺标签
 */
-message O2OStorelabel{
-    optional string id=1;
+message O2OStoreLabel{
+    /***/
+    optional string labelId=1;
     optional string name=2;
 }
 /**
@@ -220,10 +232,6 @@ message O2OCityInfo{
     optional string cityId = 1;
     /**城市名称*/
     optional string cityName = 2;
-    /**拼音*/
-    optional string pinYin = 3;
-    /**热门h,普通 p*/
-    optional string cityType = 4;
 }
 /**
 营销信息：大牌抢购等
@@ -318,11 +326,14 @@ message O2ORankTopic{
 message O2OCdpTopic{
     /**专题名称*/
     optional string title=1;
-    /**单商户展现内容*/
+    /**副标题*/
     optional string subTitle=2;
     /**专题背景图*/
     optional string coverImage=3;
     /**专题跳转url*/
     optional string jumpUrl=4;
-
+    /**广告标题文本颜色*/
+    optional string titleColor=5;
+    /**副标题文本颜色*/
+    optional string subTitleColor=6;
 }
