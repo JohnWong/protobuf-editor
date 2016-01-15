@@ -6,7 +6,19 @@
     <link rel='stylesheet' href='css/foundation.min.css'>
     <!-- Font Awesome icons (Bootstrap, Foundation, and jQueryUI also supported) -->
     <link rel='stylesheet' href='css/font-awesome.min.css'>
-    <style>[class*="foundicon-"] {font-family: GeneralFoundicons;font-style: normal;}</style>
+    <style>
+    [class*="foundicon-"] {
+        font-family: GeneralFoundicons;
+        font-style: normal;
+    }
+    .drop-area {
+        border: 3px dashed transparent;
+    }
+    .active {
+        background-color: #effdee;
+        border: 3px dashed silver;
+    }
+    </style>
     <script src="jsoneditor.js"></script>
     <!-- Please copy the following files into here: -->
     <script src="./Long.min.js"></script>
@@ -21,14 +33,14 @@
 <body>
     <div class='container'>
         <div class='row'>
-            <div class='span8 col-md-8 columns eight large-8'>
+            <div id="dropdef" class='span8 col-md-8 columns eight large-8 drop-area'>
                 <h2>Editor</h2>
-                <p>Below is the editor generated from the JSON Schema.</p>
+                <p>选择PB定义文件或者拖放文件到编辑器</p>
                 <div class="row-fluid">
-                    <input id="read" type="file" />
-                    <select id="pb-sel" style="width: auto">
+                    <input id="read" type="file" class="button"/>
+                    <select id="pb-sel" style="width: auto; display: none;">
                     </select>
-                    <button id="pb-create" class="tiny">创建</button>
+                    <!-- <button id="pb-create" class="tiny">创建</button> -->
                 </div>
                 <div id='editor'></div>
             </div>
@@ -50,19 +62,65 @@
     }
     // Initialize ProtoBuf.js
     var ProtoBuf = dcodeIO.ProtoBuf;
+    var builder;
     
-    var builder = ProtoBuf.loadProtoFile("./HomePageMessage.proto");
-    var pbSel = $("#pb-sel");
-    pbSel.empty();
-    $(builder.ns.children).each(function(k, v) {
-        var option = $("<option>");
-        option.attr("value", k);
-        option.html(v.name);
-        pbSel.append(option);
+    function readFile(file) {
+        if (!(file instanceof File)) {
+            return
+        }
+        var reader = new FileReader();
+        reader.onload = function(e) {
+            builder = ProtoBuf.loadProto(e.target.result);
+            var pbSel = $("#pb-sel");
+            pbSel.empty();
+            $(builder.ns.children).each(function(k, v) {
+                var option = $("<option>");
+                option.attr("value", k);
+                option.html(v.name);
+                pbSel.append(option);
+                pbSel.show();
+                pbSel.trigger("change");
+            });
+        };
+        reader.onerror = function(e) {
+            console.log("err", e);
+        };
+        reader.readAsText(file);
+    };
+
+    $("#read").on("change", function(evt) {
+        var files = evt.target.files[0];
+        if(files.length == 0){ 
+            return false; 
+        }
+        readFile(files[0]);        
     });
 
-    $("#pb-create").click(function() {
-        var pbIndex = pbSel.val();
+    var dropdef = $("#dropdef").on({
+        dragleave:function(e){
+            e.preventDefault();
+            dropdef.removeClass("active");
+        }, 
+        drop:function(e){  //拖后放 
+            e.preventDefault(); 
+            var files = e.originalEvent.dataTransfer.files;
+            if(files.length == 0){ 
+                return false; 
+            }
+            readFile(files[0]);
+            dropdef.removeClass("active");
+        },
+        dragenter:function(e){    //拖进 
+            e.preventDefault();
+        }, 
+        dragover:function(e){    //拖来拖去 
+            e.preventDefault(); 
+            dropdef.addClass("active");
+        }
+    });
+
+    $("#pb-sel").on("change", function(evt) {
+        var pbIndex = $("#pb-sel").val();
         var Message = builder.ns.children[pbIndex];
 
         function convertField(field) {
