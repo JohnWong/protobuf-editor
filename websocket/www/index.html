@@ -93,6 +93,21 @@
         reader.readAsText(file);
     };
 
+    var DEBUG = true;
+    if (DEBUG) {
+        builder = ProtoBuf.loadProtoFile("./HomePageMessage.proto");
+        var pbSel = $("#pb-sel");
+        pbSel.empty();
+        $(builder.ns.children).each(function(k, v) {
+            var option = $("<option>");
+            option.attr("value", k);
+            option.html(v.name);
+            pbSel.append(option);
+            pbSel.show();
+            pbSel.trigger("change");
+        });
+    }
+
     $("#readdef").on("change", function(evt) {
         var files = evt.target.files[0];
         if(files.length == 0){ 
@@ -140,9 +155,13 @@
                 'int32': 'integer',
                 'double': 'number',
                 'string': 'string',
-                'bool': 'boolean'
+                'bool': 'boolean',
+                'enum': 'object'
             };
             var type = mappings[field.type.name] || field.type.name;
+            if (type === field.type.name && type != "string") {
+                var a;
+            };
             var schema
             if (type === "object") {
                 schema = convertMessage(field.resolvedType);
@@ -167,11 +186,19 @@
         function convertMessage(message) {
             var obj = {};
             obj.title = message.name;
-            obj.type = "object";
-            obj.properties = {};
-            $(message.children).each(function(k, v) {
-                obj.properties[v.name] = convertField(v);
-            });
+            if (message.className === "Enum") {
+                obj.type = "string";
+                obj.enum = [];
+                $(message.children).each(function(k, v) {
+                    obj.enum.push(v.name);
+                });
+            } else {
+                obj.type = "object";
+                obj.properties = {};
+                $(message.children).each(function(k, v) {
+                    obj.properties[v.name] = convertField(v);
+                });
+            }
             return obj;
         }
         schema = convertMessage(Message);
@@ -198,7 +225,7 @@
         window.jsoneditor = jsoneditor;
 
         // When the value of the editor changes, update the JSON output and validation message
-        jsoneditor.on("change",function() {
+        jsoneditor.on("change", function() {
             var json = jsoneditor.getValue();
 
             output.val(JSON.stringify(json,null,2));
