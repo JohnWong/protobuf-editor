@@ -1,6 +1,6 @@
-ProtoBuf.js WebSocket example
+Protobuf Editor
 =============================
-This example shows how to use binary websockets to transfer protocol buffers.
+一个简单易用的Protobuf编辑器。功能全部在前端完成，后端只需要任意一个HTTP服务器。
 
 Instructions
 ------------

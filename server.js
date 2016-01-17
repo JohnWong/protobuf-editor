@@ -2,7 +2,6 @@
 var http = require("http"),
     fs = require("fs"),
     path = require("path"),
-    ws = require("ws"),
     open = require("open"),
     ProtoBuf = require("protobufjs");
 
@@ -71,33 +70,4 @@ server.on("listening", function() {
 server.on("error", function(err) {
     console.log("Failed to start server:", err);
     process.exit(1);
-});
-    
-// WebSocket adapter
-var wss = new ws.Server({server: server});
-wss.on("connection", function(socket) {
-    console.log("New WebSocket connection");
-    socket.on("close", function() {
-        console.log("WebSocket disconnected");
-    });
-    socket.on("message", function(data, flags) {
-        if (flags.binary) {
-            try {
-                // Decode the Message
-                var msg = Message.decode(data);
-                console.log(data);
-                console.dir(msg);
-                console.log("Received: "+msg);
-                // Transform the text to upper case
-                msg.cityId = msg.cityId.toUpperCase();
-                // Re-encode it and send it back
-                socket.send(msg.toBuffer());
-                console.log("Sent: "+msg.cityId);
-            } catch (err) {
-                console.log("Processing failed:", err);
-            }
-        } else {
-            console.log("Not binary data");
-        }
-    });
 });
