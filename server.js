@@ -65,7 +65,7 @@ var server = http.createServer(function(req, res) {
 server.listen(8080);
 server.on("listening", function() {
     console.log("Server started");
-    open("http://localhost:8080/");
+    open("http://127.0.0.1:8080/");
 });
 server.on("error", function(err) {
     console.log("Failed to start server:", err);

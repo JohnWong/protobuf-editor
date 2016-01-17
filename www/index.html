@@ -23,7 +23,7 @@
         max-width: 78rem;
     }
     </style>
-    <script src="jsoneditor.min.js"></script>
+    <script src="./jsoneditor.min.js"></script>
     <!-- Please copy the following files into here: -->
     <script src="./Long.min.js"></script>
     <!-- https://raw.github.com/dcodeIO/Long.js/master/dist/Long.min.js -->
@@ -301,6 +301,7 @@
             a.href = url;
             a.download = fileName;
             a.click();
+            a.remove();
             window.URL.revokeObjectURL( url );
         } else {
             console.log("no blob to download")
