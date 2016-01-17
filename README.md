@@ -20,3 +20,6 @@ Host folder www and open in browser.
 将Protobu的数据文件拖放到右侧的JSON输出区域，或者手动选择文件。此时会按照上一步选择的类来解析数据文件，以JSON格式展示出来。可以在这里直接修改JSON文件，点击导出按钮来下载修改后的数据文件。也可以点击更新到编辑器将数据更新到左侧的编辑器。
 
 
+## Thanks
+
+Many thansk to [Json Editor](https://github.com/jdorn/json-editor) and [Protobuf.js](https://github.com/dcodeIO/protobuf.js/).
