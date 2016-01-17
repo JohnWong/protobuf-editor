@@ -37,7 +37,7 @@ var server = http.createServer(function(req, res) {
         var url = req.url.split("?")[0];
         if (url == "/") {
             file = "index.html";
-        } else if (/\/([\w.-]+(?:\.min)?\.(?:js|css|html|proto|woff|woff2|ttf))$/.test(url)) {
+        } else if (/\/([\w.-]+(?:\.min)?\.(?:js|css|html|proto|woff|woff2|ttf|txt))$/.test(url)) {
             file = url.substring(1);
             if (/\.js$/.test(file)) {
                 type = "text/javascript";

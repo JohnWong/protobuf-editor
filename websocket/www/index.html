@@ -19,6 +19,9 @@
         background-color: #cbe9ef;
         border: 5px dashed #9c9c9c;
     }
+    .row-width {
+        max-width: 78rem;
+    }
     </style>
     <script src="jsoneditor.js"></script>
     <!-- Please copy the following files into here: -->
@@ -33,7 +36,7 @@
 
 <body>
     <div class='container'>
-        <div class='row'>
+        <div class='row row-width'>
             <div id="dropdef" class='span8 col-md-8 columns eight large-8 drop-define'>
                 <h2>编辑器</h2>
                 <p>选择PB定义文件或者直接拖放到这里</p>
@@ -41,21 +44,21 @@
                     <input id="readdef" type="file" class="button tiny" style="width: auto;"/>
                     <select id="pb-sel" style="width: auto; display: none;">
                     </select>
-                    <!-- <button id="pb-create" class="tiny">创建</button> -->
+                    <button id="editor-export" class="tiny" style="display: none;">导出</button>
                 </div>
                 <div id='editor'></div>
             </div>
             <div id="dropdata" class='span4 col-md-4 columns four large-4 drop-define'>
                 <h2>JSON输出</h2>
                 <p>选择PB数据文件或者直接拖放到这里
-                    
                 </p>
                 <input id="readdata" type="file" class="button tiny"  style="width: auto;"/>
                 <button class='btn btn-primary tiny' id='setvalue'>更新到编辑器</button>
-                <textarea id='output' style='width: 100%; height: 300px; font-family: monospace;' class='form-control'></textarea>
+                <button class='btn btn-primary tiny' id='json-export'>导出</button>
+                <textarea id='output' style='width: 100%; height: 400px; font-family: monospace;' class='form-control'></textarea>
                 <h2>Validation</h2>
                 <p>This will update whenever the form changes to show validation errors if there are any.</p>
-                <textarea id='validate' style='width: 100%; height: 100px; font-family: monospace;' readonly disabled class='form-control'></textarea>
+                <textarea id='validate' style='width: 100%; height: 80px; font-family: monospace;' readonly disabled class='form-control'></textarea>
             </div>
         </div>
     </div>
@@ -67,6 +70,30 @@
     var ProtoBuf = dcodeIO.ProtoBuf;
     var builder;
     var Message;
+
+    var schema;
+    var jsoneditor;
+    var editor = $("#editor")[0];
+    var output = $("#output");
+    var validate = $("#validate");
+
+    function exportData(data) {
+        console.log(data);
+        var msg = builder.build(Message.name).decodeJSON(data);
+        download(msg.toArrayBuffer(), Message.name + ".txt");
+    }
+
+    var editorExport = $("#editor-export").on("click", function(evt) {
+        var json = jsoneditor.getValue();
+        var data = JSON.stringify(json);
+        exportData(data);
+    });
+
+    var jsonExport = $("#json-export").on("click", function(evt) {
+        var data = output.val();
+        exportData(data);
+    });
+
     
     function readDefineFile(file) {
         if (!(file instanceof File)) {
@@ -83,30 +110,16 @@
                 option.attr("value", k);
                 option.html(v.name);
                 pbSel.append(option);
-                pbSel.show();
-                pbSel.trigger("change");
             });
+            pbSel.show();
+            pbSel.trigger("change");
+            editorExport.show();
         };
         reader.onerror = function(e) {
             console.log("err", e);
         };
         reader.readAsText(file);
     };
-
-    var DEBUG = true;
-    if (DEBUG) {
-        builder = ProtoBuf.loadProtoFile("./HomePageMessage.proto");
-        var pbSel = $("#pb-sel");
-        pbSel.empty();
-        $(builder.ns.children).each(function(k, v) {
-            var option = $("<option>");
-            option.attr("value", k);
-            option.html(v.name);
-            pbSel.append(option);
-            pbSel.show();
-            pbSel.trigger("change");
-        });
-    }
 
     $("#readdef").on("change", function(evt) {
         var files = evt.target.files[0];
@@ -208,12 +221,7 @@
         reload();
     });
     
-    var schema;
-    var jsoneditor;
-    var editor = $("#editor")[0];
-    var output = $("#output");
-    var validate = $("#validate");
-    var reload = function(keep_value) {
+    function reload(keep_value) {
         var startval = (jsoneditor && keep_value)? jsoneditor.getValue() : window.startval;
         window.startval = undefined;
 
@@ -228,7 +236,7 @@
         jsoneditor.on("change", function() {
             var json = jsoneditor.getValue();
 
-            output.val(JSON.stringify(json,null,2));
+            output.val(JSON.stringify(json, null, 4));
 
             var validation_errors = jsoneditor.validate();
             // Show validation errors if there are any
@@ -277,53 +285,66 @@
         }
         readDataFile(files[0]);        
     });
-    
+
+    function download( data, fileName, fileType ) {
+        var blob, url, a;
+        var stamp = new Date().getTime();
+        fileType = ( fileType || "text/plain;charset=UTF-8" );
+        fileName = ( fileName || "data.txt" );
+        blob = new Blob( [data], { type: fileType } );
+        
+        if ( blob ) {
+            url = window.URL.createObjectURL( blob );
+            a = document.createElement( "a" );
+            document.body.appendChild( a );
+            a.style = "display: none";
+            a.href = url;
+            a.download = fileName;
+            a.click();
+            window.URL.revokeObjectURL( url );
+        } else {
+            console.log("no blob to download")
+        }
+    }
+
+
+    var DEBUG = true;
+    if (DEBUG) {
+        builder = ProtoBuf.loadProtoFile("./HomePageMessage.proto");
+        var pbSel = $("#pb-sel");
+        pbSel.empty();
+        $(builder.ns.children).each(function(k, v) {
+            var option = $("<option>");
+            option.attr("value", k);
+            option.html(v.name);
+            pbSel.append(option);
+        });
+        pbSel.show();
+        pbSel.val("8");
+        pbSel.trigger("change");
+        editorExport.show();
+
+        function getArrayBuffer(url, callback) {
+            var xhr = new XMLHttpRequest();
+            xhr.open('GET', url);
+            xhr.responseType = 'arraybuffer';
+            xhr.onload = function() {
+                if (this.status == 200) {
+                    callback(xhr.response);
+                } else {
+                    console.error('Error while requesting', file, this);
+                }
+            };
+            xhr.send();
+        }
+        getArrayBuffer("./HomePageMessage.txt", function(result) {
+            var msg = builder.build(Message.name).decode(result);
+            var jsonString = JSON.stringify(msg, null, 4);
+            output.val(jsonString);
+            console.log(result);
+        });
+    }
     </script>
-    <!--
-<textarea id="log" style="width: 100%; height: 200px"></textarea><br />
-<input type="text" id="text" value="hello world!" /> <button onclick="send()">Send</button>
-
-<script>
-var log = document.getElementById("log");
-var text = document.getElementById("text");
-
-// Connect to our server: node server.js
-var socket = new WebSocket("ws://localhost:8080/ws");
-socket.binaryType = "arraybuffer"; // We are talking binary
-
-function send() {
-    if (socket.readyState == WebSocket.OPEN) {
-        var msg = new Message();
-        msg.cityId = text.value;
-        socket.send(msg.toArrayBuffer());
-        log.value += "Sent: "+msg.cityId+"\n";
-    } else {
-        log.value += "Not connected\n";
-    }
-}
-
-socket.onopen = function() {
-    log.value += "Connected\n";
-};
-
-socket.onclose = function() {
-    log.value += "Disconnected\n";
-};
-    
-socket.onmessage = function(evt) {
-    try {
-        // Decode the Message
-        var msg = Message.decode(evt.data);
-        console.dir(msg)
-        log.value += "Received: "+msg.cityId+"\n";
-    } catch (err) {
-        log.value += "Error: "+err+"\n";
-    }
-};
-
-log.value = ""; // Clear log on reload
-</script>
--->
 </body>
 
 </html>
