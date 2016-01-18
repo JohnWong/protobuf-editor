@@ -42,7 +42,9 @@ var server = http.createServer(function(req, res) {
                 type = "text/javascript";
             } else if (/\.css$/.test(file)) {
                 type = "text/css";
-            } 
+            } else if (/\.txt$/.test(file)) {
+                type = "application/x-protobuf";
+            }
         }
         console.log(url);
         if (file) {
