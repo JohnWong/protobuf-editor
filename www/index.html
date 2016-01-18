@@ -367,15 +367,15 @@
         var reader = new FileReader();
         reader.onload = function(e) {
             var result = e.target.result;
+            var msg = null;
             if (builder) {
-                var msg = builder.build(Message.name).decode(result);
-                var jsonString = JSON.stringify(msg, null, 4);
-                output.val(jsonString);
-                console.log(msg);
+                msg = builder.build(Message.name).decode(result);
             } else {
-                var msg = decode(result);
-                console.log(msg);
+                msg = decode(result);
             }
+            var jsonString = JSON.stringify(msg, null, 4);
+            output.val(jsonString);
+            console.log(msg);
         };
         reader.onerror = function(e) {
             console.log("err", e);
@@ -418,8 +418,7 @@
     }
 
 
-    var DEBUG = true;
-    if (DEBUG) {
+    if (false) {
         builder = ProtoBuf.loadProtoFile("./HomePageMessage.proto");
         var pbSel = $("#pb-sel");
         pbSel.empty();
@@ -434,7 +433,7 @@
         pbSel.trigger("change");
         editorExport.show();
     }
-    if (true) {
+    if (false) {
         function getArrayBuffer(url, callback) {
             var xhr = new XMLHttpRequest();
             xhr.open('GET', url);
