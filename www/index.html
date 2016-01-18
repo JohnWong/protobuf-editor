@@ -29,7 +29,7 @@
     <!-- https://raw.github.com/dcodeIO/Long.js/master/dist/Long.min.js -->
     <script src="./ByteBufferAB.min.js"></script>
     <!-- https://raw.github.com/dcodeIO/ByteBuffer.js/master/dist/ByteBufferAB.min.js -->
-    <script src="./ProtoBuf.min.js"></script>
+    <script src="./ProtoBuf.js"></script>
     <!-- https://raw.github.com/dcodeIO/ProtoBuf.js/master/dist/ProtoBuf.min.js -->
     <script src="./jquery-1.12.0.min.js"></script>
 </head>
@@ -256,6 +256,110 @@
     JSONEditor.defaults.options.theme = 'foundation5';
     JSONEditor.defaults.options.iconlib = 'fontawesome4';
 
+    function decode(buffer) {
+        buffer = ProtoBuf.ByteBuffer.wrap(buffer);
+        return decodeRaw(buffer);
+    }
+
+    function decodeBits(buffer, length) {
+        var result = "";
+        while (length -- > 0) {
+            var b = buffer.readByte() & 0xff;
+            var c = b.toString(16)
+            result = (c.length == 1 ? "0" + c : c) + result; 
+        }
+        return "0x" + result;
+    }
+
+    function decodeString(buffer, length) {
+        var offset = buffer.offset;
+        var result = '';
+        while (buffer.offset < offset + length) {
+            result += buffer.readUTF8String(1);    
+        }
+        if (buffer.offset == offset + length) {
+            return result;
+        } else {
+            throw Error("Malformat");
+        }
+    }
+
+    function decodeRaw(buffer, length, expectedGroupEndId) {
+        length = typeof length === 'number' ? length : -1;
+        var start = buffer.offset, tag, wireType, id, field;
+        var result = {};
+        while (buffer.offset < start+length || (length === -1 && buffer.remaining() > 0)) {
+            tag = buffer.readVarint32();
+            wireType = tag & 0x07;
+            id = tag >> 3;
+            if (wireType === ProtoBuf.WIRE_TYPES.ENDGROUP) {
+                if (id !== expectedGroupEndId)
+                    throw Error("Illegal group end indicator for "+this.toString(true)+": "+id+" ("+(expectedGroupEndId ? expectedGroupEndId+" expected" : "not a group")+")");
+                expectedGroupEndId = undefined;
+                return result;
+            }
+            var msg = null;
+            switch (wireType) {
+                case ProtoBuf.WIRE_TYPES.VARINT:
+                    msg = buffer.readVarint32();
+                    break;
+                case ProtoBuf.WIRE_TYPES.BITS32:
+                    msg = decodeBits(buffer, 4);
+                    break;
+                case ProtoBuf.WIRE_TYPES.BITS64:
+                    msg = decodeBits(buffer, 8);
+                    break;
+                case ProtoBuf.WIRE_TYPES.LDELIM:
+                    var len = buffer.readVarint32();
+                    var offset = buffer.offset;
+                    // TODO
+                    var isString = true;
+                    try {
+                        msg = decodeString(buffer, len);
+                    } catch (e) {
+                        isString = false;
+                    }
+                    if (isString && buffer.offset != offset + len) {
+                        isString = false;
+                    } else if (isString) {
+                        for (var i in msg) {
+                            var c = msg.charCodeAt(i);
+                            if (c < 0x20 && c != 0xa && c != 0x9) {
+                                isString = false;
+                                break;
+                            }
+                        }
+                    }
+                    if (!isString) {
+                        buffer.offset = offset
+                        msg = decodeRaw(buffer, len, expectedGroupEndId);
+                    }
+                    
+                    break;
+                case ProtoBuf.WIRE_TYPES.STARTGROUP:
+                    msg = decodeRaw(buffer, -1, id);
+                    break;
+                default:
+                    throw Error("Illegal wire type for unknown field "+id+" in "+this.toString(true)+"#decode: "+wireType);
+            }
+            if (msg) {
+                if (result[id] instanceof Array) {
+                    result[id].push(msg);
+                } else if (result[id]) {
+                    result[id] = [result[id], msg];
+                } else {
+                    result[id] = msg;
+                }
+            } else {
+                var a;
+            }
+        }
+        if (expectedGroupEndId) {
+            throw Error("Illegal wire type for unknown field "+id+" in "+this.toString(true)+"#decode: "+wireType);
+        }
+        return result;
+    }
+
     function readDataFile(file) {
         if (!(file instanceof File)) {
             return
@@ -263,10 +367,15 @@
         var reader = new FileReader();
         reader.onload = function(e) {
             var result = e.target.result;
-            var msg = builder.build(Message.name).decode(result);
-            var jsonString = JSON.stringify(msg, null, 4);
-            output.val(jsonString);
-            console.log(msg);
+            if (builder) {
+                var msg = builder.build(Message.name).decode(result);
+                var jsonString = JSON.stringify(msg, null, 4);
+                output.val(jsonString);
+                console.log(msg);
+            } else {
+                var msg = decode(result);
+                console.log(msg);
+            }
         };
         reader.onerror = function(e) {
             console.log("err", e);
@@ -324,7 +433,8 @@
         pbSel.val("8");
         pbSel.trigger("change");
         editorExport.show();
-
+    }
+    if (true) {
         function getArrayBuffer(url, callback) {
             var xhr = new XMLHttpRequest();
             xhr.open('GET', url);
@@ -339,10 +449,8 @@
             xhr.send();
         }
         getArrayBuffer("./HomePageMessage.txt", function(result) {
-            var msg = builder.build(Message.name).decode(result);
-            var jsonString = JSON.stringify(msg, null, 4);
-            output.val(jsonString);
-            console.log(result);
+            var result = decode(result);
+            console.log(JSON.stringify(result, null, 4));
         });
     }
     </script>
