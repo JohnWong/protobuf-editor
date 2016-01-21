@@ -172,11 +172,25 @@
                 'enum': 'object'
             };
             var type = mappings[field.type.name] || field.type.name;
-            if (type === field.type.name && type != "string") {
-                var a;
-            };
             var schema
-            if (type === "object") {
+            if (type === "int64") {
+                schema = {
+                    type: "object", 
+                    title: "int64",
+                    properties: {
+                        low: {
+                            type: 'integer'
+                        },
+                        high: {
+                            type: 'integer'
+                        },
+                        unsigned: {
+                            type: 'boolean'
+                        }
+
+                    }
+                }
+            } else if (type === "object") {
                 schema = convertMessage(field.resolvedType);
             } else {
                 schema = {};
@@ -418,7 +432,7 @@
     }
 
 
-    if (false) {
+    if (true) {
         builder = ProtoBuf.loadProtoFile("./HomePageMessage.proto");
         var pbSel = $("#pb-sel");
         pbSel.empty();
