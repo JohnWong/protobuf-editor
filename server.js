@@ -31,6 +31,11 @@ var builder = ProtoBuf.loadProtoFile(path.join(__dirname, "www", "HomePageMessag
 
 // HTTP server
 var server = http.createServer(function(req, res) {
+    if (path.normalize(decodeURI(req.url)) !== decodeURI(req.url)) {
+        res.statusCode = 403;
+        res.end();
+        return;
+    }
         var file = null,
             type = "text/html";
         var url = req.url.split("?")[0];
